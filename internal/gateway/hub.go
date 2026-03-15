@@ -45,3 +45,9 @@ func (h *Hub) HandleConn(conn *websocket.Conn, userID int64) {
 	go client.readPump()
 	go client.writePump()
 }
+
+func (h *Hub) Push(userId int64, msg []byte) {
+	if client, ok := h.clients[userId]; ok {
+		client.send <- msg
+	}
+}

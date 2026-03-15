@@ -1,12 +1,22 @@
 package gateway
 
-import "github.com/gorilla/websocket"
+import (
+	"encoding/json"
+
+	"github.com/gorilla/websocket"
+)
 
 type Client struct {
 	hub    *Hub
 	userID int64
 	conn   *websocket.Conn
 	send   chan []byte
+}
+
+type WSMessage struct {
+	From    int64  `json:"from"`
+	To      int64  `json:"to"`
+	Content string `json:"content"`
 }
 
 // readPump 负责从 WebSocket 连接读取消息并处理
@@ -17,10 +27,27 @@ func (c *Client) readPump() {
 	}()
 
 	for {
-		_, _, err := c.conn.ReadMessage()
+		_, msg, err := c.conn.ReadMessage()
 		if err != nil {
 			break
 		}
+		// Parse the message and handle it
+		wsMessage := &WSMessage{}
+		err = json.Unmarshal(msg, wsMessage)
+		if err != nil {
+			continue
+		}
+		// Set the sender's user ID
+		wsMessage.From = c.userID
+
+		data, err := json.Marshal(wsMessage)
+
+		if err != nil {
+			continue
+		}
+
+		// Push the message to the recipient's client
+		c.hub.Push(wsMessage.To, data)
 	}
 }
 
