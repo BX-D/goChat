@@ -1,0 +1,46 @@
+services:
+  # ---- MySQL 8.0 ----
+  # GoChat 的持久化存储：用户、消息、群组等所有数据都存这里
+  mysql:
+    image: mysql:8.0
+    ports:
+      - "3306:3306"          # 宿主机 3306 → 容器 3306，Go 代码连 127.0.0.1:3306
+    environment:
+      MYSQL_ROOT_PASSWORD: gochat123    # root 密码，和 config.yaml 里一致
+      MYSQL_DATABASE: gochat            # 自动创建这个数据库
+    volumes:
+      - mysql_data:/var/lib/mysql       # 数据持久化，容器重启数据不丢
+
+  # ---- Redis 7 ----
+  # 用途：在线状态、seq 生成、未读计数、Gateway 路由、Pub/Sub 推送
+  redis:
+    image: redis:7
+    ports:
+      - "6379:6379"
+
+  # ---- ZooKeeper ----
+  # Kafka 依赖 ZooKeeper 做集群协调（新版 Kafka 可以不用，但这个镜像还需要）
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    ports:
+      - "2181:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+
+  # ---- Kafka ----
+  # 消息队列：Chat Service 生产消息，Job Service 消费
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    ports:
+      - "9092:9092"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181           # 容器间用服务名通信
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://127.0.0.1:9092  # Go 代码连这个地址
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1          # 单节点，副本数=1
+    depends_on:
+      - zookeeper    # 确保 ZooKeeper 先启动
+
+# 命名卷：Docker 管理的持久化存储
+volumes:
+  mysql_data:

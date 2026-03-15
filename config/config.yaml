@@ -1,0 +1,30 @@
+# GoChat 配置文件
+
+mysql:
+  host: "127.0.0.1"
+  port: 3306
+  user: "root"
+  password: "gochat123"
+  db: "gochat"
+
+redis:
+  addr: "127.0.0.1:6379"
+  password: ""
+
+kafka:
+  brokers:
+    - "127.0.0.1:9092"
+  topic: "gochat-messages"
+
+gateway:
+  http_port: 8080
+
+chat:
+  rpc_port: 9090
+
+rpc:
+  framework: "minirpc"   # minirpc | grpc | kitex
+
+jwt:
+  secret: "gochat-secret-key"
+  expire: 24             # 小时
