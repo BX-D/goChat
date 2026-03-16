@@ -1,18 +1,23 @@
 package gateway
 
-import "github.com/gorilla/websocket"
+import (
+	"github.com/boxuanduan/gochat/internal/chat"
+	"github.com/gorilla/websocket"
+)
 
 type Hub struct {
 	clients    map[int64]*Client
 	register   chan *Client
 	unregister chan *Client
+	msgSvc     *chat.MessageService
 }
 
-func NewHub() *Hub {
+func NewHub(msgSvc *chat.MessageService) *Hub {
 	return &Hub{
 		clients:    make(map[int64]*Client),
 		register:   make(chan *Client),
 		unregister: make(chan *Client),
+		msgSvc:     msgSvc,
 	}
 }
 

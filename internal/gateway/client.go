@@ -46,6 +46,13 @@ func (c *Client) readPump() {
 			continue
 		}
 
+		// Save the message to the database
+		_, err = c.hub.msgSvc.SendMessage(wsMessage.From, wsMessage.To, wsMessage.Content)
+
+		if err != nil {
+			continue
+		}
+
 		// Push the message to the recipient's client
 		c.hub.Push(wsMessage.To, data)
 	}

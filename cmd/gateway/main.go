@@ -30,25 +30,29 @@ func main() {
 	}
 
 	// Create repo instances
-	repo := mysql.NewUserRepo(init)
+	userRepo := mysql.NewUserRepo(init)
+	msgRepo := mysql.NewMessageRepo(init)
 
 	// Create handler instances
-	userService := chat.NewUserService(repo, cfg.JWT)
+	userService := chat.NewUserService(userRepo, cfg.JWT)
 
 	// Setup Gin router
 	r := gin.Default()
 	userHandler := handler.NewUserHandler(userService)
+	msgSvc := chat.NewMessageService(msgRepo)
+	msgHandler := handler.NewMsgHandler(msgSvc)
 
 	// Register routes
 	userHandler.RegisterRoutes(r)
 
 	// Create and run hub
-	hub := gateway.NewHub()
+	hub := gateway.NewHub(msgSvc)
 	go hub.Run()
 
 	// Register WebSocket route
 	wsHandler := handler.NewWSHandler(hub, cfg.JWT)
 	r.GET("/ws", wsHandler.ServeWS)
+	r.GET("/api/messages", msgHandler.PullMessages)
 
 	// Start server
 	if err := r.Run(fmt.Sprintf(":%d", cfg.Gateway.HTTPPort)); err != nil {
