@@ -1,33 +1,34 @@
 package chat
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/boxuanduan/gochat/internal/repo/mysql"
+	"github.com/boxuanduan/gochat/internal/repo/redis"
 	"github.com/boxuanduan/gochat/pkg/model"
 )
 
 type MessageService struct {
 	msgRepo *mysql.MessageRepo
+	seqRepo *redis.SeqRepo
 }
 
-func NewMessageService(msgRepo *mysql.MessageRepo) *MessageService {
-	return &MessageService{msgRepo: msgRepo}
+func NewMessageService(msgRepo *mysql.MessageRepo, seqRepo *redis.SeqRepo) *MessageService {
+	return &MessageService{msgRepo: msgRepo, seqRepo: seqRepo}
 }
 
 // SendMessage: Generate conversationID -> generate seq -> save to db
 func (s *MessageService) SendMessage(senderID, receiverID int64, content string) (*model.Message, error) {
 	conversationID := generateConversationID(senderID, receiverID)
-	seq, err := s.msgRepo.GetMaxSeq(conversationID)
+	seq, err := s.seqRepo.NextSeq(context.Background(), conversationID)
 	if err != nil {
 		return nil, fmt.Errorf("get max seq: %w", err)
 	}
 
-	nextSeq := seq + 1
-
 	msg := &model.Message{
 		ConversationID: conversationID,
-		Seq:            nextSeq,
+		Seq:            seq,
 		SenderID:       senderID,
 		Content:        content,
 	}
@@ -55,4 +56,10 @@ func (s *MessageService) PullMessages(conversationID string, afterSeq int64, lim
 		return nil, fmt.Errorf("list messages: %w", err)
 	}
 	return conversation, nil
+}
+
+func (s *MessageService) AckMessage(userID int64, conversationID string, seq int64) error {
+	// Call the repository method to update the acked seq for the user and conversation
+	err := s.msgRepo.AckSeq(userID, conversationID, seq)
+	return err
 }

@@ -48,3 +48,20 @@ func (r *MessageRepo) GetMaxSeq(conversationID string) (int64, error) {
 
 	return maxSeq, nil
 }
+
+func (r *MessageRepo) AckSeq(userID int64, conversationID string, seq int64) error {
+	// Update the UserConversation record to set the acked seq for the user and conversation
+	// If not exists, create a new record with the acked seq
+	// If exists, update the acked seq if the new seq is greater than the existing one
+	var record model.UserConversation
+	err := r.db.Where("user_id = ? AND conversation_id = ?", userID, conversationID).
+		Assign(model.UserConversation{
+			UserID:         userID,
+			ConversationID: conversationID,
+			LastAckSeq:     seq,
+		}).
+		FirstOrCreate(&record).
+		Error
+
+	return err
+}

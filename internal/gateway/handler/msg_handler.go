@@ -40,3 +40,24 @@ func (h *MsgHandler) PullMessages(c *gin.Context) {
 
 	c.JSON(200, msgs)
 }
+
+func (h *MsgHandler) Ack(c *gin.Context) {
+	req := struct {
+		UserID         int64  `json:"user_id"`
+		ConversationID string `json:"conversation_id"`
+		Seq            int64  `json:"seq"`
+	}{}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(400, gin.H{"error": "invalid request"})
+		return
+	}
+
+	err := h.msgSvc.AckMessage(req.UserID, req.ConversationID, req.Seq)
+	if err != nil {
+		c.JSON(500, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(200, gin.H{"ok": true})
+}
