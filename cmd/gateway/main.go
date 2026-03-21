@@ -24,19 +24,19 @@ func main() {
 	fmt.Printf("RPC framework: %s\n", cfg.RPC.Framework)
 
 	// Init mysql repo
-	init, err := mysql.Init(&cfg.MySQL)
+	db, err := mysql.Init(&cfg.MySQL)
 	// Init redis repo
 	redisClient := redis.Init(&cfg.Redis)
 
 	if err != nil {
-		log.Fatalf("init mysql: %v", err)
+		log.Fatalf("db mysql: %v", err)
 	}
 
 	// Create repo instances
-	userRepo := mysql.NewUserRepo(init)
-	msgRepo := mysql.NewMessageRepo(init)
+	userRepo := mysql.NewUserRepo(db)
+	msgRepo := mysql.NewMessageRepo(db)
 	seqRepo := redis.NewSeqRepo(redisClient)
-	groupRepo := mysql.NewGroupRepo(init)
+	groupRepo := mysql.NewGroupRepo(db)
 
 	// Create handler instances
 	userService := chat.NewUserService(userRepo, cfg.JWT)

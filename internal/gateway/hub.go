@@ -11,6 +11,12 @@ type Hub struct {
 	unregister chan *Client
 	msgSvc     *chat.MessageService
 	groupSvc   *chat.GroupService
+	push       chan *pushMsg
+}
+
+type pushMsg struct {
+	userID int64
+	data   []byte
 }
 
 func NewHub(msgSvc *chat.MessageService, groupSvc *chat.GroupService) *Hub {
@@ -20,6 +26,7 @@ func NewHub(msgSvc *chat.MessageService, groupSvc *chat.GroupService) *Hub {
 		unregister: make(chan *Client),
 		msgSvc:     msgSvc,
 		groupSvc:   groupSvc,
+		push:       make(chan *pushMsg, 256),
 	}
 }
 
@@ -33,6 +40,16 @@ func (h *Hub) Run() {
 				delete(h.clients, client.userID)
 				close(client.send)
 			}
+		case pMsg := <-h.push:
+			if client, ok := h.clients[pMsg.userID]; ok {
+				select {
+				case client.send <- pMsg.data:
+				default:
+					close(client.send)
+					delete(h.clients, client.userID)
+				}
+			}
+
 		}
 	}
 }
@@ -54,7 +71,9 @@ func (h *Hub) HandleConn(conn *websocket.Conn, userID int64) {
 }
 
 func (h *Hub) Push(userId int64, msg []byte) {
-	if client, ok := h.clients[userId]; ok {
-		client.send <- msg
+	pMsg := &pushMsg{
+		userID: userId,
+		data:   msg,
 	}
+	h.push <- pMsg
 }
