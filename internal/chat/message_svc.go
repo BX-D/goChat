@@ -19,8 +19,7 @@ func NewMessageService(msgRepo *mysql.MessageRepo, seqRepo *redis.SeqRepo) *Mess
 }
 
 // SendMessage: Generate conversationID -> generate seq -> save to db
-func (s *MessageService) SendMessage(senderID, receiverID int64, content string) (*model.Message, error) {
-	conversationID := generateConversationID(senderID, receiverID)
+func (s *MessageService) SendMessage(senderID int64, conversationID string, content string) (*model.Message, error) {
 	seq, err := s.seqRepo.NextSeq(context.Background(), conversationID)
 	if err != nil {
 		return nil, fmt.Errorf("get max seq: %w", err)
@@ -37,17 +36,6 @@ func (s *MessageService) SendMessage(senderID, receiverID int64, content string)
 		return nil, fmt.Errorf("create message: %w", err)
 	}
 	return msg, nil
-}
-
-func generateConversationID(senderID int64, receiverID int64) string {
-	conversationID := ""
-	if senderID < receiverID {
-		conversationID = fmt.Sprintf("p:%d:%d", senderID, receiverID)
-	} else {
-		conversationID = fmt.Sprintf("p:%d:%d", receiverID, senderID)
-	}
-
-	return conversationID
 }
 
 func (s *MessageService) PullMessages(conversationID string, afterSeq int64, limit int) ([]*model.Message, error) {

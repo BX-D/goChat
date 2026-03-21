@@ -36,21 +36,24 @@ func main() {
 	userRepo := mysql.NewUserRepo(init)
 	msgRepo := mysql.NewMessageRepo(init)
 	seqRepo := redis.NewSeqRepo(redisClient)
+	groupRepo := mysql.NewGroupRepo(init)
 
 	// Create handler instances
 	userService := chat.NewUserService(userRepo, cfg.JWT)
+	groupService := chat.NewGroupService(groupRepo)
 
 	// Setup Gin router
 	r := gin.Default()
 	userHandler := handler.NewUserHandler(userService)
 	msgSvc := chat.NewMessageService(msgRepo, seqRepo)
 	msgHandler := handler.NewMsgHandler(msgSvc)
+	groupHandler := handler.NewGroupHandler(groupService)
 
 	// Register routes
 	userHandler.RegisterRoutes(r)
 
 	// Create and run hub
-	hub := gateway.NewHub(msgSvc)
+	hub := gateway.NewHub(msgSvc, groupService)
 	go hub.Run()
 
 	// Register WebSocket route
@@ -58,6 +61,11 @@ func main() {
 	r.GET("/ws", wsHandler.ServeWS)
 	r.GET("/api/messages", msgHandler.PullMessages)
 	r.POST("/api/messages/ack", msgHandler.Ack)
+
+	// Register group routes
+	r.POST("/api/group/create", groupHandler.CreateGroup)
+	r.POST("/api/group/join", groupHandler.JoinGroup)
+	r.GET("/api/group/:id/members", groupHandler.GetMembers)
 
 	// Start server
 	if err := r.Run(fmt.Sprintf(":%d", cfg.Gateway.HTTPPort)); err != nil {

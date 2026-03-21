@@ -10,14 +10,16 @@ type Hub struct {
 	register   chan *Client
 	unregister chan *Client
 	msgSvc     *chat.MessageService
+	groupSvc   *chat.GroupService
 }
 
-func NewHub(msgSvc *chat.MessageService) *Hub {
+func NewHub(msgSvc *chat.MessageService, groupSvc *chat.GroupService) *Hub {
 	return &Hub{
 		clients:    make(map[int64]*Client),
 		register:   make(chan *Client),
 		unregister: make(chan *Client),
 		msgSvc:     msgSvc,
+		groupSvc:   groupSvc,
 	}
 }
 

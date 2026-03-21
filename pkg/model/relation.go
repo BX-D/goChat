@@ -26,5 +26,5 @@ type GroupMember struct {
 	GroupID  int64     `json:"group_id" gorm:"not null;uniqueIndex:uk_gm"`
 	UserID   int64     `json:"user_id" gorm:"not null;uniqueIndex:uk_gm"`
 	Role     int8      `json:"role" gorm:"default:0"` // 0=member, 1=admin, 2=owner
-	JoinedAt time.Time `json:"joined_at"`
+	JoinedAt time.Time `json:"joined_at" gorm:"autoCreateTime"`
 }
